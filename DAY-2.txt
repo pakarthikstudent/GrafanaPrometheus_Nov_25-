@@ -1,0 +1,422 @@
+Recap
+=====
+Grafana - Visualization
+
+DataSources
+ - TSDB
+ - cloud
+ - RDBMS
+ - logs
+ - ...
+
+Grafana ---HTTP----[DataSoruces]
+   ----------------------
+   |
+
+Visualization - panel - own set of attributes(properties)
+				   - we can edit the attribute values
+
+we can add more panel
+
+Dashboard - 1 or more panel 
+|
+Save this dashboard -->share this dashboard ->json
+-----------------------------------------------------
+we can import json_file ->dashboard
+===============================================================
+Granfana + random
+|
+Granfana + InfluxDB
+	   ========
+		|->TSDB
+
+1st - Database connection ->OK (Database daemon - R+ ; database is active) 
+|
+2nd - Grafan Datasource ->Add new data source ->http end point connection with portnumber
+			   ----------------	===========================================
+         
+|
+3rd  - Create  a dashboard
+===========================================================================================================
+
+	
+variable - placeholder - holding a value
+				   ------ 
+
+updated - variable name ->In Query editor -> $variableName = follows regx pattern only style 
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+raj,sales,bglore --> grep/finstr sales - general search pattern => grep sales inputdata
+
+raj,sales,bglore --> search a sales pattern line starts with => grep ^sales inputdata
+
+raj,sales,bglore --> search a sales pattern line ends with --> grep sales$ inputdata
+
+salesasassdsdfdssd=> grep ^sales ... ->OK
+-----
+asdfasd sales sadsfs --> grep sales -->OK
+---------------------
+	|__ grep ^sales ->Empty - Not matched
+
+asdfsf sales -->grep sales$ .. ->OK
+
+^sales$ <-- pattern only
+
+In grafana -->  /^$variable$/
+
+In grafana query editor =>  FieldName = Value
+				Vs
+			    FieldName =~ /RegxPattern/
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+Connected to http://localhost:8086 version 1.7.11
+InfluxDB shell version: 1.7.11
+> show databases
+name: databases
+name
+----
+_internal
+db1
+> use db1
+Using database db1
+> show measurements
+name: measurements
+>
+> select * from cpu_usage
+name: cpu_usage
+time                mode server value
+----                ---- ------ -----
+>
+> insert cpu_usage,mode=io,server=host01 value=64.24
+>
+> insert cpu_usage,mode=io,server=host03 value=34.24
+>
+>
+> insert cpu_usage,mode=wait,server=host03 value=58.42
+>
+>
+> insert cpu_usage,mode=wait,server=host02 value=98.42
+>
+> select *from cpu_usage
+name: cpu_usage
+time                mode server value
+----                ---- ------ -----
+1763373797943323100 idle host01 98.45
+1763373901224207800 wait host02 89.42
+1763374535273895200 wait host02 93.42
+1763374551285894300 wait host02 30.42
+1763374665615363000 idle host01 30.42
+1763377491153476500 idle host01 67.54
+1763377502448928300 idle host01 27.33
+1763377516857823300 idle host01 99.33
+1763377547680150000 idle host01 103.21
+1763378156294374700 idle host01 50
+1763378169015910100 idle host01 12
+1763378183391361500 idle host01 120
+1763378204898618600 idle host01 87
+1763378785895167900 idle host01 67
+1763378923613419500 idle host01 77
+1763379228923447800 idle host01 89.32
+1763439800007929400 io   host02 87.44
+1763439873172560300 io   host01 64.24
+1763439888699509500 io   host03 34.24
+1763439913064287500 wait host03 58.42
+1763439965909515300 wait host02 98.42
+>
+> show tag keys from cpu_usage
+name: cpu_usage
+tagKey
+------
+mode
+server
+> show tag keys from cpu_usage with key = "mode"
+ERR: error parsing query: found WITH, expected ; at line 1, char 30
+>
+> show tag values from cpu_usage with key = "mode"
+name: cpu_usage
+key  value
+---  -----
+mode idle
+mode io
+mode wait
+> show tag values from cpu_usage with key = "server"
+name: cpu_usage
+key    value
+---    -----
+server host01
+server host02
+server host03
+> show field keys from cpu_usage;
+name: cpu_usage
+fieldKey fieldType
+-------- ---------
+value    float
+> show tag values from cpu_usage with key = "mode"
+name: cpu_usage
+key  value
+---  -----
+mode idle
+mode io
+mode wait
+> show tag values from cpu_usage with key = "server"
+name: cpu_usage
+key    value
+---    -----
+server host01
+server host02
+server host03
+>
+=================================================================================
+
+https://play.grafana.org/dashboards
+
+=================================================================================
+Annotation 
+----------
+ |-> adding some text on the existing datapoints - marker
+ 
+
+ |-> manual annotation -> create new text -> on the data point
+ |
+ |-> Query-based annotation -- automatically created from data source using query
+
+
+========================================================================================================
+
+1. service file
+2. YAML 
+------------------
+
+1. Service file
+===============
+
+windows -> .exe file 
+	   .exe --config=...
+----------------------------------// 
+
+Linux --> /bin/file
+		|-->process
+
+	/bin/file --config=/etc/file.conf
+
+---------------------------------//
+
+
+influxdbd <== 1st start this influxdb service/exe -- R+
+|
+|
+influx-cli <== SQL 
+
+OS view 
+  ==> system process - start automatically - while os loading time.
+      --------------
+
+  ==> user process  - login is done -->user ->application -->user process 
+
+
+   node1
+ +-----------+  
+ |           |
+ +-----------+
+   |
+ exporter (binary file /exe file)
+   |
+  run - //process(system process)
+   |
+   |
+   |______ collect the metrics about node1 -------->------- prometheus --->-- 
+		  (cpu;memory..)		
+
+
+remote_node - node1
+-------------=======
+wget https://github.com/prometheus/node1_exporter.targz <== download this file
+|
+tar -xvzf node1_exporter.targz <== extract this file
+|
+cd node1_exporter <==
+|
+node1_exporter <== this is executable binary file 
+|
+cp node1_exporter /bin  (or) /usr/bin
+|
+//now the node1_exporter file is like a os command
+
+root@host~]# node1_exporter {enter}
+....
+....		//execution - process
+
+^C <== exit ->node1_exporter is not active
+
+root@host~]#
+
+
+Create own service file
+------------------------//configuration file
+	|
+	to map -->real executable file 
+		  ======================
+
+Linux To create service file
+-------------------------------
+ |
+/etc/systemd/system/filename.service 
+
+[Unit]
+Description="About your service"
+[Service]
+ExecStart = <map your real binary/executable file>
+[Install]
+WantedBy=multi-user.target
+|
+save this file
+|
+systemctl daemon-reload # read the configuration
+systemctl enable filename.service 
+systemctl start filename.service
+systemctl status filename.service 
+##########################################################################################################
+
+
+2. YAML   -> filename.yaml (or) filename.yml
+==========
+|->file content -> key: value //pair 
+   ------------
+	|
+      key:<space>Value
+
+      Key:<space>Value
+		 |------->Single
+		 |------------------>Collection(Array,Hash/dict)
+
+	fileinfo
+	     |->filename,fileindex,filesize
+
+
+	fname: p1.log
+	findex: 1234
+        fsize: 5KB
+	----------------//1Key: 1Value
+
+
+	fileinfo: [p1.log,1234,5KB]
+		  --------------------//array 1Key: Multiplevalues
+
+		(or)
+	fileinfo:
+	-<space>p1.log
+	-<space>1234
+	-<space>5KB
+	=================================
+	
+	fileinfo: {K1: p1.log,K2: 1234,K3: 5KB}
+		  --------------------------------
+	
+	fileinfo:
+	<><>K1:<>p1.log
+        <><>K2:<>1234
+        <><>K3:<>5KB
+	--------------------// Multiple values 
+
+
+
+
+	Key: Value 
+	Vs
+	Key: [ Value1, [V2,V3], {K1:V4,K2:V5} ]
+		       =======   ===========
+	(or)
+			
+       Key:
+       - Value1
+       - 
+	  - V2
+	  - V3
+	 K2: V5
+       - K1: V4
+
+
+
+ configs: V1  # 1Key: 1Value
+
+ configs: [V1,V2,V3] #1Key: Array
+
+   (or)
+ config: 
+ - V1
+ - V2
+ - V3
+ 
+configs: [ {job_name: prometheus,job_name: node1,job_name: node2 } ]  ->duplicate key
+		Vs							
+ configs: [ {job_name: prometheus},{job_name: node1},{job_name: node2} ]
+	    ----------------------  ================  ________________	 //OK
+ 
+   |
+  configs:
+  - job_name: prometheus
+     ...
+  - job_name: node1
+    ...
+  - job_name: node2
+    ...
+##########################################################################################################
+Prometheus 
+ - open source monitoring and alerting system
+ - used to collect and store metrics from services,applications,container,cloud infrastructure etc.,
+
+ - promQL 
+ 
+ - Exporter 
+    |
+   node_exporter  -- CPU RAM HD Network
+   cadviser          Docker containers
+   mysqld_exporter   Mysql
+   kafka_exporter    Kafa
+
+- alertmanager 
+|
+- Grafana
+
+
+
+ <metricName> {Label}   <finalValue>
+ ---|------------|----------------------	
+    |            |
+  pre-defined   {Key1 = value,Key2 = value}
+
+
+	  				
+https://demo.promlens.com/
+
+
+process_max_fds{job = "prometheus"}
+		
+<metricName>{key = != < <= > >= Value}  
+		 ============== //relational operators
+
+<metricName>{key =~ RegxPattern}
+		 !~
+		 --------//Regx operators
+
+process_cpu_seconds_total{job = "cadvisor"}
+
+ =~ 
+
+prometheus_http_requests_total{handler =~ "/api/v[0-9].*"}
+prometheus_http_requests_total{handler =~ "/api/v[0-9].*", instance =~ "localhost:[0-9]{4}"}
+
+process_cpu_seconds_total{job =~ "p.*"}
+process_cpu_seconds_total{instance =~ "demo.*"}
+process_cpu_seconds_total{job =~ "cadvisor|demo|nodeA|nodeB"}
+process_cpu_seconds_total{job =~ "cadvisor|demo|[pP]rometheus"}
+node_cpu_guest_seconds_total{cpu =~ "[12]",mode =~ "user|system|idle"}
+
+prometheus_http_requests_total{handler =~ "/api/v[0-9].*"}
+
+prometheus_http_requests_total{code != "200"}
+
+
+#############################################################################################################
+	

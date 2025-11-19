@@ -1,0 +1,229 @@
+Good Morning All 
+
+Welcome to Monitoring cloud using Grafana and Prometheus Training 
+	   =============================================
+This is Palani Karthikeyan (Call: Karthik) - Trainer.
+	===================================
+
+
+======================================================================================
+
+Grafana - Visualization tool 
+---------
+
+Grafana + Random data  
+|		Vs
+Grafana + InfluxDB (TSDB)
+|		Vs
+Grafana + Prometheus (TSDB)
+-----------------------------------------------------------------------------
+
+Observability
+=============
+ |-> [ machine]     
+ |-> [ Application] 
+
+ Logs   ---> Text based records of events(error,info,war,debug)
+
+ Metrics ---> Measurement - floating value (CPU Usage,memory,request count,latency...)
+
+ Traces ----> Follow the path of request (trace show request spent 80% time ...)
+
+
+Grafana + Loki,Elastric search ( ELK ) // Logging 
+
+Grafana + Prometheus //Metrics 
+
+Grafana + Tempo,Jaeger,Zipkin //Tracing 
+|         ===============================
+|                      |
+FrontEnd            BackEnd 
+
+
+Grafana is a visualization tool - allows you to connect metrics,log and tracing from various sources.
+
+
+Grafana + Excel (product sales records) 
+Grafana + CSV
+Grafana + Mysql+Oracle+....
+Grafana + userInput_Text
+
+
+[EndUser] ->[Configure  the DataSource ]--->[Visualization....//Dashboard]   
+	  |_____________________________ ___________________________________|
+		
+-------------------------------------------------
+default grafana running port number is 3000
+-------------------------------------------------
+open a broswer -> 127.0.0.1:3000 {Enter}
+
+Login: 		admin
+		
+Password:	admin
+=====================================================================================================
+
+Grafana + Random data  
+
+Dashboard - 1 or more panels(visualization)
+			|
+			each panel having own set of attributes(properties)
+			- all the panel properties are edit able
+ 
+=====================================================================================================
+
+Task :
+1. create a newDashboard ->default Panel
+ 2. set the panel title
+ 3. save this dashboard
+ 4. duplicate current panel
+ 5. add new row - set the row title - prodA
+ 6. create a new panel ->duplicate this panel
+ 7. add new row - set the row title - prodB
+ 8. save this Dashboard
+ 9. open an existing panel ->copy this panel
+----
+ 10. Go to Grafana Home page
+11. create a newdashboard -><Paste your existing panel>
+12. create a newpanel (stat) ->create a lib panel
+13. save this dasboard
+----
+ 14. Go to Grafana Home page
+ 15. create a newdashboard -><add existing lib panel>
+ 16. edit this panel => unlink Vs save lib panel
+		|
+		unlink this panel - do edit
+######################################################
+Task
+-------
+1. create a newdash board 
+2. timeseries panel  =>value mapping
+		 - value 	<Number>  <Color>	
+		 - range n,m	<Color>
+3. refresh panel - see the changes in Y axis
+|
+4. stat panel 
+5. Gauge panel
+##############################################################################################################
+
+
+http://localhost:3000/d/b0a1e64b-c835-4739-b8ab-0e7f39f72657/db2?orgId=1&from=2025-11-17T03:00:26.065Z&to=2025-11-17T09:00:26.065Z&timezone=browser&showCategory=Panel%20options&viewPanel=panel-2
+
+http://localhost:3000/goto/4wRRDFiDg?orgId=1
+
+To connect external datasource to grafana
+--------------------------------------------
+
+step 1: Test your datasource - OK
+|       =======================
+|		|-> DBname,port number .. database specific service - R+ (Active) 
+|                                                                   
+step 2: Grafana ->DataSource ->Add new datasource -> Configure DB ->do Test ->OK
+|
+|
+step 3: Go to Dashboard ->panel ->edit property.. ->visualization
+
+
+Time Series Database (TSDB)
+============================
+ -> To store,process and query - timestamped data
+				 -----------------
+ -> insert into .... <timestamped>
+
+ -> Time series data = Value + timestamp
+				
+ -> In Graph (visualization) =>  X axis - timestamp ; Y axis - Value
+ 
+ -> CPU usage every seconds/minute/hr..
+
+ -> Stock prices every minute
+ -> Temperature reading from sensors
+ -> IoT device metrics 
+ -> server logs and event..
+ |
+ |
+ -> we data aggregation -> average,max,min,count... //
+==================================================================================
+TSDB
+1. InfluxDB -> like SQL query language 
+2. Prometheus -> metrics based - Not SQL style query ; prometheus follows promQL
+3. Timescale DB
+4. OpenTSDB - distributed data
+5. Graphite 
+
+==================================================================================
+ex:
+cpu_usage > 90%  last 10 minutes 
+
+write / insert data - time-stamped data
+stores 
+index by time
+query 
+==================================================================================
+Influx DB	Vs	Prometheus
+------------		-------------
+TSDB			TSDB
+SQL like		PromQL -- not SQL based		
+- insert		 |<-- metric based 
+- update		 |<-- there is no create/insert/delete/select ...
+- delete
+- select
+
+Table - measurement 
+insert <measurement>,<field=Value>,...FinalValue  # time is indexed 
+	-------------				
+
+create database <dbname>;
+show databases;
+
+show measurements;
+
+insert <measurementName>,field=Value,field1=Value finalValue {Enter}
+
+select *from <measurementName>
+
+======================================================================================================
+
+https://dl.influxdata.com/influxdb/releases/influxdb-1.7.11_linux_amd64.tar.gz 
+
+https://dl.influxdata.com/influxdb/releases/influxdb-1.7.11_darwin_amd64.tar.gz 
+
+https://dl.influxdata.com/influxdb/releases/influxdb-1.7.11_windows_amd64.zip
+
+=====================================================================================================
+
+Connected to http://localhost:8086 version 1.7.11
+InfluxDB shell version: 1.7.11
+> use db1
+Using database db1
+>
+> show measurements
+name: measurements
+name
+----
+cpu_usage
+>
+>
+> select *from cpu_usage
+name: cpu_usage
+time                mode server value
+----                ---- ------ -----
+1763373797943323100 idle host01 98.45
+1763373901224207800 wait host02 89.42
+>
+> insert cpu_usage,server=host02,mode=wait value=93.42
+>
+> insert cpu_usage,server=host02,mode=wait value=30.42
+>
+> insert cpu_usage,server=host01,mode=idle value=30.42
+>
+
+
+
+IoT ----<API>---->[influxDB]------------>[Grafana]
+			
+App ---->[influxDB] ----------->[Grafana]
+	
+
+Telegraf - Agent - Collect data 
+--------
+===========================================================================================
