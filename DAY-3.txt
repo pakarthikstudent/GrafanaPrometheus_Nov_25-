@@ -1,0 +1,330 @@
+
+[DEFAULT]
+user=ocid..usw4ee5q
+fingerprint=4c..7h
+tenancy=oc..h6qia
+region=us-ashburn-1
+key_file=<path to your private keyfile> # TODO
+
+===============================================================================================
+
+
++---------------------------+
+| Grafana - visualization
+|		|-------------------oci-metrics---------[ OCI - metrics exporter ]
++---------------------------+					DataSource
+									
+
+===============================================================================================
+prometheus
+ -> localhost:9090 - local server
+
+
+	+--------------------+
+	|		     |
+        |             ------------------------[ node1 ] 
+	|	      -------------------------------------[node2]
+	|		     |
+	+--------------------+
+
+remote node is Linux
+-----------------------
+
+   node1
+ +-----------+  
+ |           |
+ +-----------+
+   |
+ exporter (binary file /exe file)
+   |
+  run - //process(system process)
+   |
+   |
+   |______ collect the metrics about node1 -------->------- prometheus --->-- 
+		  (cpu;memory..)		
+
+remote node is Linux
+-----------------------
+exporter name is called  node_exporter 
+			 =============
+
+On remote Linux 
+=================
+wget https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-arm64.tar.gz
+
+tar -xvzf node_exporter-1.10.2.linux-arm64.tar.gz
+
+cd node_exporter-1.10.2.linux-arm64
+|
+copy this node_exporter file to /bin (or) any binary location
+|
+start this node_exporter //process
+
+|->curl 127.0.0.1:9100/metrics 
+  -------------------------------
+  node_....
+  node_...
+  node_....
+ 
+  
+
+aws_...
+oci_...
+node_...
+container_...
+process_....
+mysql_...
+......................................
+To monitor remote Linux machine to promethes server		
+=====================================================
+
+STEP 1:
++-----------------------+			        +-------+
+| prometheus_server     | <-----------network---------> | node1 | Linux 192.168.1.23
+|  IP:9090              |				+-------+
+|			|
++-----------------------+
+
+
+STEP 2:
+On the remote Linux system
+--------------------------
+1. download node_exporter 
+2. extract node_exporter 
+3. run the node_exporter 
+4. test the linux node metrics -> curl 127.0.0.1:9100/metrics 
+   ----------------------------------------------------------//OK
+
+STEP 3:
+Update remote Linux node details to prometheus(prometheus.yml)
+|
+|->open prometheus.yml
+	 |
+	scrape_configs
+	- job_name: <userdefined-job-name>
+	  static_configs:
+          - targets: ["remoteIP:9100"]  <== oci add ingress rule allow 9100 
+	--------------------------------//yaml rule
+
+|
+STEP 4:
+restart prometheus service (windowx: prometheus.exe / Linux like systemctl restart prometheus)
+|
+STEP 5:
+|
+Go to prometheus - targets
+http://127.0.0.1:9090/targets
+|
+STEP 6:
+Prometheus Query editor -> node .... 
+=======================================================================================================
+
+https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-arm64.tar.gz
+
+#!/bin/bash
+NODE_EXPORTER_VERSION="1.10.2"
+
+wget https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz
+
+tar -xzvf node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz
+
+cd node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64
+
+cp node_exporter /usr/local/bin
+
+# create user
+useradd --no-create-home --shell /bin/false node_exporter
+
+chown node_exporter:node_exporter /usr/local/bin/node_exporter
+
+echo '[Unit]
+Description=Node Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target' > /etc/systemd/system/node_exporter.service
+
+# enable node_exporter in systemctl
+systemctl daemon-reload
+systemctl start node_exporter
+systemctl enable node_exporter
+
+----
+systemctl status node_exporter
+
+curl 127.0.0.1:9100/metrics
+
+==========================================================================================
+
+OL
+---
+sudo firewall-cmd --add-port=9100/tcp --permanent
+sudo firewall-cmd --reload
+
+Ubuntu/Debian
+--------------
+sudo ufw allow 9100/tcp
+
+
+==========================================================================================
+ 
+node_exporter
+-------------
+ -> To monitor the linux machine itself.
+ -> This is NOT individual process (or) services 
+
+    On Linux 
+ -> /proc/sys/kernel/  (or) sysctl -w <kernel.params> = value <-- runtime changes
+    there is no os(kernel->linux) restart is required.
+
+   
+     -----------------------------------------
+	systemcall() ->FD (FileDescriptor)  FD=0 <STDIN> FD=1 STDOUT FD=2 STDERR FD=0x123 Memory 
+	  |				    FD=3 to 2 pow 32/64 -- std filedescriptors
+	  |				    FD=-1 <== FailedCall
+	  |
+	FileSystem <---> PCB|IPC;SCHED;Memory;network| <- Process Control Block
+	  |	
+	DeviceDriver
+	  |
+	Device Controller
+	  |
+	----------------------------
+	 H/W
+
+   -----------------------------------------
+	systemcall() ->FD (FileDescriptor)  FD=0 <STDIN> FD=1 STDOUT FD=2 STDERR FD=0x123 Memory 
+	  |				    FD=3 to 2 pow 32/64 -- std filedescriptors
+	  |				    FD=-1 <== FailedCall
+	  |
+	FileSystem <---> PCB|IPC;SCHED;Memory;network| <- Process Control Block
+	(proc   xfs/ext ntfs iso960 ocfs ..) 	
+	 ...	   | 	  |	|
+-------------------|----- |--	|
+	 CPU RAM  HardDisk|	CDROM
+			 NIC
+
+
+      /proc <--- user view
+       |
+      proc <-- filesystem
+	|
+	CPU RAM <-- harware 
+
+
+   --->  /etc  Vs /proc 
+	 ...      ....
+	
+--->System Collectors
+
+1. cpu collector
+   ==============
+
+   node_cpu_seconds_total - How much time each CPU spent in each mode.
+
+   
+
+2. Filesystem collector
+   ==================== 
+  node_filesystem_size_bytes
+  node_filesystem_avail_bytes
+  node_filesystem_size_bytes
+  node_filesystem_files
+  node_filesystem_files_free
+
+
+3. Diskstats collector
+   ----------------------
+node_disk_io_now
+node_disk_io_time_seconds_total
+node_disk_read_bytes_total
+node_disk_write_time_seconds_total
+
+
+4. Netdev collector
+  --------------
+  node_network - network device and send/receive data (bytes) / transmit_packets ..
+
+
+5. Meminfo collector
+  ---------------------
+  cat /proc/meminfo
+
+  node_memory_...
+ 
+  node_memory_
+
+
+6. Hwmon collector
+   ------------
+   bare metal ->H/w (ex: process fan speeds ; temperature etc)
+
+   node_hwmon_ ..
+
+7. stat collector
+   ------------
+   /proc/stat
+
+  node_boot_time_seconds
+  time()
+
+8. UnameCollector
+  ----------------
+   node_uname_info
+
+9. Loadavg collector
+   -------------------
+   uptime 
+    
+  node_load1
+  node_load5
+  node_load15
+
+
+=====================================================================================================
+
+To monitor remote Windows 
+----------------------------
+1. Download - windows_exporter 
+  https://github.com/prometheus-community/windows_exporter
+
+2. Run the exporter file ( .exe)
+|
+3. default port number: 9182
+
+|
+4. http://windowsIP:9182/metrics 
+   |
+  windows_... <-- metric name 
+
+5. Allow port 9182 in Windows
+
+PS C:\Users\karth> New-NetFirewallRule -DisplayName "Prometheus Windows Exporter" -Direction Inbound -Protocol TCP -LocalPort 9182 -Action Allow
+============================================================
+|
+6. update to prometheus(prometheus.yml)	
+	
+   - job_name: "windows"
+     static_config:
+       - targets: ["<windows-IP>:9182"]
+
+7. Restart the prometheus 
+====================================================
+
+=====================================================================================================
+windows_cpu_time_total
+windows_exporter_build_info
+windows_memory_physical_free_bytes
+..
+------------------------------------------------------------------------------
+1 ->service/process is active
+0 ->service/process is NOT active
+
+==========================================================================================================
