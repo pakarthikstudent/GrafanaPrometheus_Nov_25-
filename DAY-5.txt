@@ -1,0 +1,434 @@
+cgroup 
+-------
+1. Control Group
+
+2. cAdv
+
+3. Alertmanager
+
+4. service discovery 
+
+5. Grafana 
+    - snapshot
+    - playlist
+    - useradministration
+    ..
+-------------------------------------//Grafana + Prometheus -> metric 
+ 6. Grafana + loki				 ----------
+   -----------------------------------//Grafana + Loki ->text/string
+========================================================================================================
+
+Linux Kernel Architecture
+--------------------------
+Kernel ->File,Process
+
+User    |
+--------| 
+        File,Process 
+Kernel  ==============
+------- |
+        |
+H/w	
+
+File - Data - under the storage unit 
+Process - Data - under the CPU
+
+CGI ...
+========
+ [client]  [server-code] [ DB ] [otherTools] ; DB ; web; audio... //user process
+ -------------------------------------------
+	|	|	  |	|
+ Kernel 
+ -------------------------------------------
+ H/w:  CPU RAM HD NIC ...
+
+Vs
+
+ [client]  [server-code] [ DB ] [otherTools] ; DB ; web; audio... //user process
+ -------------------------------------------
+   [LXC]      [LXC]      [LXC]    [LXC]         <-- container
+   |___________|___________|_________|
+       
+-------------------------------------------
+ H/w:  CPU RAM HD NIC ...
+
+ControlGroup - cgroup - is a linux kernel feature - subsystem
+
+cgroups 
+- Control how much CPU,Memory,disk IO ...a process can use
+- Prioritize - CPU priority to specific application
+- process-group - isolate 
+- monitor
+
+/etc/systemd/system/ab.service
+
+[Unit]
+
+
+[Service]
+ExecStart=/root/p1.sh
+CPUQuota=50%
+MemoryMax=200M
+
+...
+cAdvisor
+---------
+ |->monitor container resource usage
+
+ |-> It collects and exposes:
+	- cpu usage
+	- memory usage
+	- Disk io
+	- network i/o
+	- container info
+
++----------------------+
+|  Kernel             |
+|  (cgroup)           | 
++---------------------+
+       |
+      \ /
+|                
+|  cAdvisor      
+| - read cgroup stats
+| - ....
+| - collect metrics
+| - Expose metrics => /metrics
+|		        |
+			|--->prometheus 
+				|
+			   container_... <== metric naming format
+
+Real time container monitoring
+
+====================================================================================================
+Alertmanager 
+---------------
+
+1. download alertmanger binary
+|  |__alertmanager binary file (or) .exe file
+   |__alertmanager.yml
+	---------------// which contains - channel details
+					   |->email,slack,pagerduty,...
+
+2. update channel details -> alertmanager.yml file
+|
+3. restart alertmanager.service (or) .exe 
+----------------------------------------
+4. alert rules
+	|
+	promQL with condition //
+       Ex: (node_memory_Active_bytes{job="OL7"} / node_memory_MemTotal_bytes{job="OL7"}) * 100 >25
+
+5. filename.yml 
+   groups:
+   - name: <userdefinedGroupName>
+     rules:
+     - record: <userdefinedRecord_rule>
+       expr: promQL 
+     - alert: <userdefinedAlertRule>
+       expr: promQL with Condition
+       for: <duration>
+       labels:
+         severity: {critical|warning|info|ticket}
+       annotations:
+         summary: <user defined message>
+
+
+       annotations:
+         summary: "Only {{printf "%2.f" $value}}% of instance are up"
+
+	 summary: "Instance {{$labels.instance}} of {{$lables.job}} is down"
+			    --------------------    
+	 dashboard: http://localhost:3000/public-dashboards/52ac866b0c9d44c9b8eb3e29c285147e
+
+6. update alert rule file to prometheus(prometheus.yml)
+
+   alerting:
+     alertmangaers:
+     - static_configs:
+       - targets: ['localhost:9093'] 
+
+   rule_files:
+   - demo1.yml
+   - demo2.yml
+
+7. restart prometheus 
+---------------------------------------------------------------------------------
+
+prometheus.yml
+|->edit =>restart prometheus.service / prometheus.exe
+   |
+  adding(or) modifing any endpoint(target node/application)
+  appending alert rule file / record rule file
+
+alertmanger.yml
+ |-->edit  =====> alertmanager.service / alertmanager.exe 
+      --> channel details
+---------------------------------------------------------------------------------
+
+
+alert rule
+------------
+(node_memory_Active_bytes{job="OL7"} / node_memory_MemTotal_bytes{job="OL7"}) * 100 >25
+
+
+8. Add channel configuration - alertmanager.yml
+============================   ==================
+
+https://oracle.slack.com/apps <---(1)
+		|
+		[manage] <-- (2)
+		  |
+ 
+[customeintegration]<--(3)
+	|
+	|->[Incoming webhooks]<--(4)
+	    |
+	[add a configuration]<--(5)
+	    |
+	   #prometheus-alert <- (6) update channel
+	    |
+	webhookURL: https://hooks.slack... <-- (7)
+		   ===================================
+			|->Copy this link
+
+paste it into alertmanager.yml file
+
+  - api_url: https://hooks.slack.com/services/XXXXXX/XXXXXX/XXXXXX
+	    ===========================================(8)
+		 Paste this line
+    |
+    |
+    |
+9. restart alertmanager.exe/alertmangaer.service
+           ====================================
+
+####
+###############################################################################################
+
+Recap - Prometheus
+--------------------
+
+ prometheus.yml
+
+
+ -- added new endpoint
+
+ -- added new targets to prometheus 
+ --
+ -- restart prometheus
+  -----------------------
+	- all the other prometheus targets are down -->..up
+						-----
+	
+	- OL7 ->192.168.1.7
+	  ---//remotenode
+
+	  - job_name: "OL7"
+            static_configs:
+            - targets: ["192.168.1.7:9100"]
+ 			--------------------------//
+
+	 if remote node OL7 ip is updated ->192.168.1.8//
+
+		- OL7 ->192.168.1.7
+	  ---//remotenode
+
+	  - job_name: "OL7"
+            static_configs:
+            - targets: ["192.168.1.7:9100"]
+ 			--------------------------//down state
+		|
+	  prometheus.yml
+
+	  
+	  - job_name: "OL7"
+            static_configs:
+            - targets: ["192.168.1.8:9100"]
+ 			--------------------------//update this remote ip
+
+	   restart prometheus
+
+====================================================================================================
+
+Service Discovery (SD)
+--------------------
+ |-> Process of automatically discovering the targets(prometheus targets) (or) endpoints
+     then prometheus used scraped metrics.
+
+ |-> there is no prometheus restart for every new targets adding to promtheus.yml 
+  
+
+ |-> file service discovery (file_sd)
+     ======================
+     |->discover the targets by reading the target information
+     
+    prometheus.yml
+	
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:   <========================(A)
+      - targets: ["localhost:9090"]
+  
+ Vs
+	
+scrape_configs:
+  - job_name: "prometheus"
+    file_sd_configs:   <========================(B)
+      - files:
+	 - file1.json
+	 - file2.json 
+
+(A) Vs (B)
+
+
+scrape_configs:
+  - job_name: "prometheus"
+    file_sd_configs:   <========================(B)
+      - files:
+	 - "*.json" <== 
+	 - "/etc/prometheus/targets/*.json"
+
+
+
+[{"targets":"localhost:9090","labels":{"job":"localnode","team":"infra"}}]
+
+python
+|
+>>> import json
+>>>
+>>> L = [{"targets": ['localhost:9090'],"labels":{"team":"infra","job":"localnode"}}]
+>>>
+>>> with open("test1.json","w") as wobj:
+...     json.dump(L,wobj)   # writing python data ->json file 
+...
+>>> exit()
+
+
+
+[{"targets":["192.168.1.8:9100"],"labels":{"job":"OL7","team":"dev"}}]
+
+========================================================================================================
+
+Prometheus Storage 
+----------------------
+TSDB 
+
+1. <metricName>+Label  = Value+Timestamp // Key = Value 
+
+2. quering time-series data 
+   --------//optimistic 
+
+3. -->local on-disk storage engine  
+ 
+    In-Memory - recent data in memory
+    Disk storage - TSDB blocks
+    ==============================//compressed to save disk space 
+
+   TSDB 
+     |->partitioned - blocks - 2hrs 
+     |->index
+     |->compression
+
+     |->New scraped data
+
+				------WRITE-----
+ 4. write-path - when prometheus scrapes data to memory
+    read-path - when we do query prometheus ->1st looks in memory - not -->refers to disk block.
+											|
+				----------------<------------------------------------
+						READ
+
+==============================================================================================================
+
+https://snapshots.raintank.io/dashboard/snapshot/z7y1WQDLXDnJlKhcLKcVetJ8ypVbqYOs
+
+==============================================================================================================
+
+Grafana-loki 
+- log aggregation - datasource 
+
+- Collect and analyze logs 
+
+- Text/string
+
+- index - metadata //fast 
+
+|
+- Loki server
+  promtail - agent - collecting logs from various sources(file,containers,..) sending them to loki.
+
+LogDirectory/
+	----<--------[Promtail] --->-----[Loki]----->--[Grafana]
+
+|
+LogQL
+
+{app="web",status!="200"} 
+{app="web",status!="200"} |= "error"
+
+Loki configuration is YAML 
+//like prometheus.yml
+
+
+3100
+
+Labsetup
+============
+1. Download Loki 
+2. Download promtail
+
+|
+3. Extract the download files
+
+|
+Run the loki
+# terminal-1
+loki-windows-amd64.exe --config.file=loki-config.yaml
+
+# open another terminal
+
+promtail.yml
+|
+__path__: 'C:/path/to/...*.log' (or) in linux -> /var/log/*.log
+          ----------------------
+
+promtail-windows-amd64.exe --config.file=promtail-config.yaml
+
+|||
+Grafana - DataSource 
+
+======================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
