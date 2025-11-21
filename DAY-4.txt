@@ -1,0 +1,370 @@
+PromQL
+------
+
+
+ [prometheus-server:9090]
+		|_________________[Linux] - node_exporter
+
+		|_________________[winx] - wmi_exporter
+		
+		|_________________[pythonCode]
+		|
+		|_________________[MLApp]
+
+		|_________________[ XYZ component/service]
+
+<metricName> {Key1=value,Key2=Value,..Kn=Vn}  <FinalValue> <timestamp>
+------------------------------------------------------------
+ | 
+ metric types
+ 	
+ |
+ |->functions
+ |->operators
+
+Types of promQL Queries
+-------------------------
+1. Instant Vector - Timeseries data points for a given time.
+
+   ex:  process_max_fds{app="prometheus", instance="localhost:9090", job="prometheus"}	16777216
+
+2. Range Vector - Collection - A set of timeseries data points over a time range.
+	<metricName>{Label}[duration] -->Collection //range vector ->won't display graph.
+
+   ex: process_max_fds{job="prometheus"}[1m]
+
+  process_max_fds{app="prometheus", instance="localhost:9090", job="prometheus"}	
+	16777216 @ 1763615275.034
+	16777216 @ 1763615290.034
+	16777216 @ 1763615305.034
+	16777216 @ 1763615320.034
+
+
+3. Scalar - A single numerical value.
+  
+ 
+Prometheus Metric Types
+------------------------
+1. Counter - metric value - always incremental value / increase over time 
+ 
+2. Gaguge - metric value - up (or) down - increment/decrement  
+
+3. Histogram - samples observation (ex: http_request duration/response size) - bucket
+			count of samples
+			data is grouped into buckets
+4. Summary - Similar to histogram - qunantiles 
+	
+
+	
+Aggregate Functions
+-----------------------
+avg()
+sum()
+min(),max()
+count() 
+rate() - Calculates the per-second rate of counter metric 
+
+Operators
+-------------
+Aritmetic operators
++ - * / 
+
+relational operators
+== != < <= > >=
+
+#################################################################################
+
+Aggregation 
+--------------
+Gauge 
+-----
+metic - node_filesystem_size_bytes
+
+node_filesystem_size_bytes{job="OL7"}
+|
+sum(node_filesystem_size_bytes{job="OL7"})
+|
+|-> {}	78452658176
+
+prometheus_http_requests_total{job="prometheus",handler =~ "/api/v1/query"}
+sum(node_filesystem_size_bytes{job="OL7"})
+avg by(instance) (process_open_fds{job="OL7"})
+
+=====================================================================
+Counter
+---------
+node_network_receive_bytes_total
+node_network_receive_bytes_total{job="OL7",device="enp0s3"}
+node_network_receive_bytes_total{job="OL7",device="enp0s3"}[5m]
+|
+rate(node_network_receive_bytes_total{job="OL7",device="enp0s3"}[5m])
+-----------------------------------------------------------------------
+//The [5m] says to provide rate with 5minutes of data
+//so the returned value will an average over the last 5mints
+
+sum without(device)(rate(node_network_receive_bytes_total{job="OL7",device="enp0s3"}[5m]))
+
+
+Summary
+- unit -> quantile
+ _sum _count //counter 
+
+
+Avg = sum/count
+
+sum without(handler)(rate(prometheus_http_response_size_bytes_sum[5m])) / sum without(handler)(rate(prometheus_http_response_size_bytes_count{job="prometheus"}[5m]))
+
+
+<metricName>{}[duration]
+--------------------------//Range Vector -->Instant Vector	--> Graph 
+					 rate() + agg		
+
+
+
+
+rate(node_network_receive_bytes_total{job="OL8",device="enp0s3"}[10m])
+
+rate(node_network_receive_bytes_total{job="OL8",device="enp0s3"}[1h])
+##################################################################################################
+sum
+count
+min
+max
+topk
+bottomk
+
+topk(k,metric) -> returns the top k time series with the highest values for the given metric
+bottom(k,metric) -->returns the bottom k time series with lowest values for the given metric
+
+k - number of elements 
+
+topk(3,rate(http_requests_total[5m]) by (method)
+
+time() 
+==========================================================================================
+
+promQL -----> YAML Format
+	      ------------//rule file
+		|
+		filename.yml
+		=============
+
+
+Rule file format
+=================
+groups:
+- name: <userdefinedGroupName>
+  rules:
+  - record: <userdefined_rule_name1>
+    expr: promQL
+  - record: <userdefined_rule_name2>
+    expr: promQL
+
+-------------------------------------------
+
+How to create a record rule in prometheus ?
+
+Step 1:  promQL ->run on the prometheus query browswer //OK
+|
+Step 2: Create a yml file => ex: demo1.yml
+	|
+	Step 3:  write promQL - in YAML format
+		 ...
+		 Save this file
+
+Step 4: update this rulefile(demo1.yml) to prometheus(prometheus.yml)
+	rule_files:
+	- demo1.yml (or) - "C:\\users\\userA\\project\\mydemo.yml" (or) /home/userA/project/demo1.yml
+	- demo2.yml
+|
+Step 5: restart prometheus server 
+===================================================================================
+
+
+sum without(instance)(rate(process_cpu_seconds_total{job="OL8"}[5m]))
+
+file: demo1.yml
+groups:
+- name: example_demo
+  rules:
+  - record: job:process_cpu_second_over_5m
+    expr: sum without(instance)(rate(process_cpu_seconds_total{job="OL8"}[5m]))
+  - record: job:myrule_open_fd
+    expr: max without(instance)(process_max_fds{job="OL8"})
+=========================================================================================
+
+Application monitoring
+----------------------
+ |->Code (p1.java,p1.py,p1.c)
+ |->Application(Ex: fullstack app (or) webbased app)
+
+cpu
+memory
+----------//application _usages 
+gc
+cpu
+RES
+..
+..
+
+C program
+----------
+->procedure code style
+function()
+headerfile
+..
+
+Java program
+---------------
+-->oop style
+ class ->object ->methods
+
+
+Infrastructure-Monitoring
+ - exporter(binary_file)
+	|
+	Running on the machine
+	//process - dedicated port number
+	 |
+	 |
+  Collect the metrics from Machine ---send to/give to prometheus(:9090)
+		ex: node_exporter:9100
+		    pushgateway:9190
+				-------HTTP_EndPoint---->---[prometheus]		
+	
+Vs
+Application/code - Monitoring
+ 
+ - import prometheus library to your running code / source prometheus library
+   -----------------------------------------------
+
+   ex: file: p1.py
+   ===============
+   import prometheus_client    
+	  ==================
+		|
+		pre-defined function/method 
+		|
+		collect the metrics about your running code/Application ----send to/give to prometheus(:9090)
+					========================================================
+							|
+					---HTTP_EndPoint---->---[prometheus]
+						:8000 ------->--------:9090
+
+	+------------+
+	| AppCode    |
+	+------------+
+	    |_:8000____________http_endpoint___________________[prometheus:9090]
+							    |
+							    |->targets:
+								 localhost:9090
+								 node_exporter:9100
+								 windows_exporter:<port>
+								 pushgateway:9190
+								 pythonCode:8000
+								 JavaCode:8000
+								 App:8000
+
+
+python -m pip install prometheus_client
+
+python -m pip show prometheus_client
+
+
+===================================================================
+Example - Counter Type
+
+from prometheus_client import Counter 
+
+req_obj = Counter('hello_world_total','Hello world metric by karthik')
+
+class myclass(http.server.BaseHTTPRequestHandler):
+	def method1(self):
+		req_obj.inc()
+		self.send_response(200)
+		self.end_headers()
+		self.wfile.write(b"Hello world")
+
+
+if __name__ == '__main__':
+	start_http_server(8000)
+	server = http.server.HTTPServer(('localhost',8001),myclass)
+	server.serve_forever()
+
+
+=======================================================================================================
+
+WebAppln
+|
+|--> python
+|--> webserver
+|--> Database
+|--> Client tools - libs
+
+
++------------------------------------+  // container (or) cloud - deploy the application to container/cloud 
+| [python][flask][database]
+|           :1234  :3306 
+|   |__________|______|
+|    
+|  ---->[:8000]
++----------|--------------------------+
+	   |_________________________________________________ prometheus:9090
+			send app - metrics to prometheus 
+
+
+=========================================================================================================
+
+Consul Exporter
+------------------
+1st - download exporter =>https://github.com/prometheus/consul_exporter/releases/download/v0.13.0/consul_exporter-0.13.0.linux-amd64.tar.gz
+
+2nd - extract file
+
+3rd - run this export file
+	...
+  	:9107
+
+=========================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
